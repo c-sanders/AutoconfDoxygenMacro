@@ -1,0 +1,1 @@
+../c++/EulersFormula/sed/get_version_component.sed
