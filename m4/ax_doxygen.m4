@@ -16,6 +16,7 @@
 #
 #   AX_DOXYGEN(
 #
+#     [min-required-version-number],
 #     [action-if-found],
 #     [action-if-not-found]
 #   )
@@ -274,6 +275,8 @@ AC_DEFUN(
 				AC_MSG_NOTICE([Test message])
 			],
 			[
+				_AX_DOXYGEN_CHECK_IF_SED_SCRIPT_IS_PRESENT()
+
 				# ---------------------------------------------------------------------------------
 				# Get the minimum version of Doxygen which is required by this package.
 				# ---------------------------------------------------------------------------------
@@ -319,11 +322,100 @@ AC_DEFUN(
 
 				AX_VERSION_COMPARE([${minVersionMajor}], [${minVersionMinor}], [${minVersionRelease}])
 
-				# $2
+				$2
 			]
 		)
 	]
 )
+
+
+AC_DEFUN(
+
+	[_AX_DOXYGEN_CHECK_IF_SED_SCRIPT_IS_PRESENT],
+
+	[
+		# Save the name of the previous (calling) function and set the name of the current function.
+
+		namePreviousFunction_check_if_sed_script_is_present=${nameFunction}
+
+		nameFunction="-AX-DOXYGEN-CHECK-IF-SED-SCRIPT-IS-PRESENT"
+
+
+		AC_MSG_NOTICE([${namePreviousFunction_check_if_sed_script_present} : >>>>> Relinquishing control >>>>>])
+		AC_MSG_NOTICE([${nameFunction} : Enter])
+		
+		##### Insert immediately below.
+
+		AS_IF(
+
+			[test -s "${srcdir}/sed/get_version_component.awk"],
+			[
+				AC_MSG_NOTICE([${nameFunction} : sed script is present in the correct location])
+			],
+			[
+				# The required sed script does not appear to reside at the correct location.
+				#
+				# This is probably because the Package Maintainer forgot to add it to the package.
+
+				AC_MSG_NOTICE([${nameFunction} : Could not find the sed script])
+
+				echo "# When invoked directly from the command line, the sed expression which is used by this script"       >  "${srcdir}/sed/get_version_component.po"
+				echo "# should look as follows;\\n"                                                                         >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "#   sed -n -e 's/^@<:@.@:>@\?\(@<:@0-9@:>@\+\)$/\1/p'"                                                >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "# If however, this sed expression is invoked from within an Autoconf macro, then some alterations"    >> "${srcdir}/sed/get_version_component.po"
+				echo "# will need to be made to it in order to prevent the Autoconf utility from interpreting some of the"  >> "${srcdir}/sed/get_version_component.po"
+				echo "# characters."                                                                                        >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "# In particular, the following substitutions will need to be made;"                                   >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "#   Replace the '@<:@' character with the following character sequence : \@<:\@"                      >> "${srcdir}/sed/get_version_component.po"
+				echo "#   Replace the '@:>@' character with the following character sequence : @:>@"                        >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "# Furthermore, some of the characters need to be backslash escaped in either scenario, i.e. whether"  >> "${srcdir}/sed/get_version_component.po"
+				echo "# the sed expression is being used directly from the command line or within an Autoconf macro. These" >> "${srcdir}/sed/get_version_component.po"
+				echo "# characters include;"                                                                                >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "#   '?'"                                                                                              >> "${srcdir}/sed/get_version_component.po"
+				echo "#   '+'"                                                                                              >> "${srcdir}/sed/get_version_component.po"
+				echo "#   '('"                                                                                              >> "${srcdir}/sed/get_version_component.po"
+				echo "#   ')'"                                                                                              >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "# Finally, the sed command line utiliry does not support the lookbehind feature. It is for this"      >> "${srcdir}/sed/get_version_component.po"
+				echo "# reason that the sed commands which are used by this function, aren't as comprehensive as they"      >> "${srcdir}/sed/get_version_component.po"
+				echo "# otherwise could be."                                                                                >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "# It is possible that a version number component could be passed to this sed script using one of the" >> "${srcdir}/sed/get_version_component.po"
+				echo "# following two formats;"                                                                             >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "#   1   # Major version number component"                                                             >> "${srcdir}/sed/get_version_component.po"
+				echo "#   .1  # Minor or release version number component"                                                  >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "# The sed script takes this into account by way of the;"                                              >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "#   @<:@.@:>@\?"                                                                                      >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo "# component in the regex."                                                                            >> "${srcdir}/sed/get_version_component.po"
+				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
+				echo ""                                                                                                     >> "${srcdir}/sed/get_version_component.po"
+				echo "s/^@<:@.@:>@\?\(@<:@0-9@:>@\+\)$/\1/p"                                                                >> "${srcdir}/sed/get_version_component.po"
+			]
+
+		)  # End of AS_IF
+
+		AC_MSG_NOTICE([${nameFunction} : Exit])
+
+
+		# Restore the name of the previous (calling) function.
+
+		nameFunction=${namePreviousFunction_check_if_sed_script_is_present}
+
+		AC_MSG_NOTICE([${nameFunction} : <<<<< Resuming control <<<<<])
+
+	]  # End of definition of function : _AX_DOXYGEN_CHECK_IF_SED_SCRIPT_IS_PRESENT
+
+)  # End of function : _AX_DOXYGEN_CHECK_IF_SED_SCRIPT_IS_PRESENT
 
 
 # ==================================================================================================
