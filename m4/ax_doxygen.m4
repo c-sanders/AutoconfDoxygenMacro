@@ -134,13 +134,19 @@
 #
 # - AX_DOXYGEN
 #    |
-#    |- _AX_DOXYGEN_SET_VERSION_NUMBER_COMPONENTS                               : Function A : Uses AC_MSG_NOTICE = No
+#    |- _AX_DOXYGEN_SET_VERSION_NUMBER_COMPONENTS                               : Function A : Uses AC_MSG_NOTICE = No  === Raises : _AX_DOXYGEN_ERROR_MIN_REQD_VER_INVALID | _AX_DOXYGEN_ERROR_FOUND_VER_INVALID
 #        |
 #        |- _AX_DOXYGEN_CHECK_IF_VERSION_STRING_IS_VALID                        : Function B : Uses AC_MSG_NOTICE = No
 #        |
 #        |- _AX_DOXYGEN_EXTRACT_VERSION_NUMBER_COMPONENTS                       : Function C : Uses AC_MSG_NOTICE = Yes
 #            |
 #            |- _AX_DOXYGEN_PROCESS_VERSION_NUMBER_COMPONENTS                   : Function D : Uses AC_MSG_NOTICE = Yes
+#                |                                                                Raises     : _AX_DOXYGEN_ERROR_MIN_REQD_VER_MAJOR_INVALID
+#                |                                                                             _AX_DOXYGEN_ERROR_MIN_REQD_VER_MINOR_INVALID
+#                |                                                                             _AX_DOXYGEN_ERROR_MIN_REQD_VER_RELEASE_INVALID
+#                |                                                                             _AX_DOXYGEN_ERROR_FOUND_VER_MAJOR_INVALID
+#                |                                                                             _AX_DOXYGEN_ERROR_FOUND_VER_MINOR_INVALID
+#                |                                                                             _AX_DOXYGEN_ERROR_FOUND_VER_RELEASE_INVALID
 #                |
 #                |- _AX_DOXYGEN_SET_VERSION_NUMBER_COMPONENTS_TO_ZERO_IF_EMPTY  : Function E : Uses AC_MSG_NOTICE = No
 #
@@ -163,14 +169,22 @@
 # Invokes    : _AX_DOXYGEN_SET_MIN_REQUIRED_VERSION_NUMBER_COMPONENTS
 #              _AX_VERIFY_VERSION_NUMBERS
 #              AX_VERSION_COMPARE
+#
+#
+# Error codes
+# ===========
+#
+# -1 : Minimum required version number string appears to be invalid
+# -2 : Found version number string appears to be invalid.
+#
+# -3 : Package Maintainer has specified an invalid minimum required major version number for Doxygen.
+# -4 : Package Maintainer has specified an invalid minimum required minor version number for Doxygen.
+# -5 : Package Maintainer has specified an invalid minimum required release version number for Doxygen.
+#
+# -6 : Found instance of Doxygen has reported an invalid major version number.
+# -7 : Found instance of Doxygen has reported an invalid minor version number.
+# -8 : Found instance of Doxygen has reported an invalid release version number.
 
-## /**
-##  * \brief Constructor for the class.
-##  */
-
-##
-## \brief Constructor for the class.
-##
 
 AC_DEFUN(
 
@@ -178,6 +192,19 @@ AC_DEFUN(
 
 	[
 		nameFunction="AX-DOXYGEN"
+
+		_AX_DOXYGEN_ERROR_MIN_REQD_VER_INVALID=-1
+		_AX_DOXYGEN_ERROR_FOUND_VER_INVALID=-2
+
+		_AX_DOXYGEN_ERROR_MIN_REQD_VER_MAJOR_INVALID=-3
+		_AX_DOXYGEN_ERROR_MIN_REQD_VER_MINOR_INVALID=-4
+		_AX_DOXYGEN_ERROR_MIN_REQD_VER_RELEASE_INVALID=-5
+
+		_AX_DOXYGEN_ERROR_FOUND_VER_MAJOR_INVALID=-6
+		_AX_DOXYGEN_ERROR_FOUND_VER_MINOR_INVALID=-7
+		_AX_DOXYGEN_ERROR_FOUND_VER_RELEASE_INVALID=-8
+		
+		error=0
 
 		minVersionNumber=$1
 		# actionIfFound=$2
@@ -290,41 +317,79 @@ AC_DEFUN(
 
 				AC_MSG_NOTICE([--------------------------------------------------])
 
-				# ---------------------------------------------------------------------------------
-				# Get the version of Doxygen which has been found on this system.
-				# ---------------------------------------------------------------------------------
+				AS_IF(
 
-				# Get the version of the doxygen command line utility.
+					[test ${error} == 0],
+					[
+						# ---------------------------------------------------------------------------------
+						# Get the version of Doxygen which has been found on this system.
+						# ---------------------------------------------------------------------------------
 
-				versionDoxygen=$(${DOXYGEN} --version)
-				# versionDoxygen=""
+						# Get the version of the doxygen command line utility.
 
-				_AX_DOXYGEN_SET_VERSION_NUMBER_COMPONENTS(
+						versionDoxygen=$(${DOXYGEN} --version)
+						# versionDoxygen=""
 
-					["Found"],
-					[${versionDoxygen}],
-					["Found version number of doxygen"]
-				)
+						_AX_DOXYGEN_SET_VERSION_NUMBER_COMPONENTS(
 
-				AC_MSG_NOTICE([--------------------------------------------------])
+							["Found"],
+							[${versionDoxygen}],
+							["Found version number of doxygen"]
+						)
 
-				# _AX_VERIFY_VERSION_NUMBERS(
-				#
-				#	[${foundVersionMajor}],
-				#	[${foundVersionMinor}],
-				#	[${foundVersionRelease}]
-				# )
+						AC_MSG_NOTICE([--------------------------------------------------])
 
-				# ---------------------------------------------------------------------------------
-				# Compare the minimum required version to the version which has been found on this
-				# system.
-				# ---------------------------------------------------------------------------------
+						AS_IF(
 
-				AX_VERSION_COMPARE([${minVersionMajor}], [${minVersionMinor}], [${minVersionRelease}])
+							[test ${error} == 0],
+							[
 
-				$2
+								# _AX_VERIFY_VERSION_NUMBERS(
+								#
+								#	[${foundVersionMajor}],
+								#	[${foundVersionMinor}],
+								#	[${foundVersionRelease}]
+								# )
+
+								# ---------------------------------------------------------------------------------
+								# Compare the minimum required version to the version which has been found on this
+								# system.
+								# ---------------------------------------------------------------------------------
+
+								AX_VERSION_COMPARE([${minVersionMajor}], [${minVersionMinor}], [${minVersionRelease}])
+
+								$2
+							],
+							[
+								AC_MSG_NOTICE([An error has occurred])
+							]
+
+						)  # End of AS_IF
+					],
+					[
+						AC_MSG_NOTICE([An error has occurred])
+					]
+
+				)  # End of AS_IF
+
+				AS_IF(
+
+					[test ${error} == 0],
+					[
+						# No errors occurred.
+					],
+					[
+						# _AX_DOXYGEN_SET_VERSION_NUMBER_COMPONENTS returned an error.
+						#
+						# Perform action-if-not-found.
+
+						$3
+					]
+
+				)  # End of AS_IF [test ${error} == 0]
 			]
-		)
+
+		)  # End of AS_IF [test -z "${DOXYGEN}"]
 	]
 )
 
@@ -343,12 +408,10 @@ AC_DEFUN(
 
 		AC_MSG_NOTICE([${namePreviousFunction_check_if_sed_script_present} : >>>>> Relinquishing control >>>>>])
 		AC_MSG_NOTICE([${nameFunction} : Enter])
-		
-		##### Insert immediately below.
 
 		AS_IF(
 
-			[test -s "${srcdir}/sed/get_version_component.awk"],
+			[test -s "${srcdir}/sed/get_version_component.sed"],
 			[
 				AC_MSG_NOTICE([${nameFunction} : sed script is present in the correct location])
 			],
@@ -362,64 +425,64 @@ AC_DEFUN(
 				#             10        20        30        40        50        60        70        80
 				#     ---------|---------|---------|---------|---------|---------|---------|---------|
 
-				echo "# 1) The sed expression"                                                          >  "${srcdir}/sed/get_version_component.po"
-				echo "# ---------------------"                                                          >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# When invoked directly from the command line, the sed expression which is used " >> "${srcdir}/sed/get_version_component.po"
-				echo "# by this script should look as follows;"                                         >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#   sed -n -e 's/^@<:@.@:>@\?\(@<:@0-9@:>@\+\)$/\1/p'"                            >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# 2) Backslash substitutions"                                                     >> "${srcdir}/sed/get_version_component.po"
-				echo "# --------------------------"                                                     >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# If however, this sed expression is invoked from within an Autoconf macro, then" >> "${srcdir}/sed/get_version_component.po"
-				echo "# some alterations will need to be made to it in order to prevent the Autoconf"   >> "${srcdir}/sed/get_version_component.po"
-				echo "# utility from interpreting some of the characters which comprise it."            >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# In particular, the following substitutions will need to be made;"               >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo -n "#   Replace the '@<:@' character with the following character sequence : @<:"  >> "${srcdir}/sed/get_version_component.po"
-				echo "@"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo -n "#   Replace the '@:>@' character with the following character sequence : @:>"  >> "${srcdir}/sed/get_version_component.po"
-				echo "@"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# Furthermore, some of the characters need to be backslash escaped in either"     >> "${srcdir}/sed/get_version_component.po"
-				echo "# scenario, i.e. whether the sed expression is being invoked directly from the"   >> "${srcdir}/sed/get_version_component.po"
-				echo "# command line or from within an Autoconf macro. These characters include;"       >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#   '?'"                                                                          >> "${srcdir}/sed/get_version_component.po"
-				echo "#   '+'"                                                                          >> "${srcdir}/sed/get_version_component.po"
-				echo "#   '('"                                                                          >> "${srcdir}/sed/get_version_component.po"
-				echo "#   ')'"                                                                          >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# 3) Deficiencies with sed and the sed expression"                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# -----------------------------------------------"                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# It is worth noting that the sed command line utiliry does not support the"      >> "${srcdir}/sed/get_version_component.po"
-				echo "# lookbehind feature. It is for this reason that the sed command which is used"   >> "${srcdir}/sed/get_version_component.po"
-				echo "# by this function, is not as comprehensive as it otherwise could be."            >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# 4) The string to be operated on"                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# -------------------------------"                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# The string which is to be operated on by this sed expression, could be in one"  >> "${srcdir}/sed/get_version_component.po"
-				echo "# of the following two formats;"                                                  >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#   1   # Major version number component"                                         >> "${srcdir}/sed/get_version_component.po"
-				echo "#   .1  # Minor or release version number component"                              >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "# The sed script takes this into account by way of the;"                          >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                >> "${srcdir}/sed/get_version_component.po"
-				echo "#   @<:@.@:>@\?"                                                                  >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
-				echo "# component in the regex."                                                                            >> "${srcdir}/sed/get_version_component.po"
-				echo "#"                                                                                                    >> "${srcdir}/sed/get_version_component.po"
-				echo ""                                                                                                     >> "${srcdir}/sed/get_version_component.po"
-				echo "s/^@<:@.@:>@\?\(@<:@0-9@:>@\+\)$/\1/p"                                                                >> "${srcdir}/sed/get_version_component.po"
+				echo    "# 1) The sed expression"                                                          >  "${srcdir}/sed/get_version_component.sed"
+				echo    "# ---------------------"                                                          >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# When invoked directly from the command line, the sed expression which is used " >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# by this script should look as follows;"                                         >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#   sed -n -e 's/^@<:@.@:>@\?\(@<:@0-9@:>@\+\)$/\1/p'"                            >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# 2) Backslash substitutions"                                                     >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# --------------------------"                                                     >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# If however, this sed expression is invoked from within an Autoconf macro, then" >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# some alterations will need to be made to it in order to prevent the Autoconf"   >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# utility from interpreting some of the characters which comprise it."            >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# In particular, the following substitutions will need to be made;"               >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo -n "#   Replace the '@<:@' character with the following character sequence : @<:"     >> "${srcdir}/sed/get_version_component.sed"
+				echo    "@"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo -n "#   Replace the '@:>@' character with the following character sequence : @:>"     >> "${srcdir}/sed/get_version_component.sed"
+				echo    "@"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# Furthermore, some of the characters need to be backslash escaped in either"     >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# scenario, i.e. whether the sed expression is being invoked directly from the"   >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# command line or from within an Autoconf macro. These characters include;"       >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#   '?'"                                                                          >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#   '+'"                                                                          >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#   '('"                                                                          >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#   ')'"                                                                          >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# 3) Deficiencies with sed and the sed expression"                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# -----------------------------------------------"                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# It is worth noting that the sed command line utiliry does not support the"      >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# lookbehind feature. It is for this reason that the sed command which is used"   >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# by this function, is not as comprehensive as it otherwise could be."            >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# 4) The string to be operated on"                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# -------------------------------"                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# The string which is to be operated on by this sed expression, could be in one"  >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# of the following two formats;"                                                  >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#   1   # Major version number component"                                         >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#   .1  # Minor or release version number component"                              >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# The sed script takes this into account by way of the;"                          >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#   @<:@.@:>@\?"                                                                  >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    "# component in the regex."                                                        >> "${srcdir}/sed/get_version_component.sed"
+				echo    "#"                                                                                >> "${srcdir}/sed/get_version_component.sed"
+				echo    ""                                                                                 >> "${srcdir}/sed/get_version_component.sed"
+				echo    "s/^@<:@.@:>@\?\(@<:@0-9@:>@\+\)$/\1/p"                                            >> "${srcdir}/sed/get_version_component.sed"
 			]
 
 		)  # End of AS_IF
@@ -459,6 +522,7 @@ AC_DEFUN(
 #
 # Test if the version string which was passed to this function is valid. If it is, then set the
 # values for the individual components which make up the version string.
+
 
 AC_DEFUN(
 
@@ -507,7 +571,9 @@ AC_DEFUN(
 						)
 					],
 					[
-						AC_MSG_ERROR([Minimum required version number string appears to be invalid])
+						# Minimum required version number string appears to be invalid.
+
+						error=_AX_DOXYGEN_ERROR_MIN_REQD_VER_INVALID
 					]
 				)
 			],
@@ -526,7 +592,9 @@ AC_DEFUN(
 						)
 					],
 					[
-						AC_MSG_ERROR([Found version number string appears to be invalid])
+						# Found version number string appears to be invalid.
+
+						error=_AX_DOXYGEN_ERROR_FOUND_VER_INVALID
 					]
 				)
 			]
@@ -707,6 +775,8 @@ AC_DEFUN(
 		AC_MSG_NOTICE([${nameFunction} : ${displayString} (minor)   = ${versionMinor}])
 		AC_MSG_NOTICE([${nameFunction} : ${displayString} (release) = ${versionRelease}])
 
+		# The following function can raise errors.
+
 		_AX_DOXYGEN_PROCESS_VERSION_NUMBER_COMPONENTS(
 		
 			[${version}],
@@ -792,42 +862,42 @@ AC_DEFUN(
 
 					[test -z ${temp_versionMajor}],
 					[
-						AC_MSG_ERROR([Package Maintainer has specified an invalid minimum required version major number for Doxygen])
+						error=_AX_DOXYGEN_ERROR_MIN_REQD_VER_MAJOR_INVALID
 					],
 					[
 						minVersionMajor=${temp_versionMajor}
-					]
-				)
 
-				# Set the Minimum required version minor number.
+						# Set the Minimum required version minor number.
+						
+						temp_versionMinor=$(echo ${minVersionMinor} | ${SED} -n -f ${srcdir}/sed/get_version_component.sed)
+						
+						AS_IF(
+						
+							[test -z ${temp_versionMinor}],
+							[
+								error=_AX_DOXYGEN_ERROR_MIN_REQD_VER_MINOR_INVALID
+							],
+							[
+								minVersionMinor=${temp_versionMinor}
 
-				temp_versionMinor=$(echo ${minVersionMinor} | ${SED} -n -f ${srcdir}/sed/get_version_component.sed)
+								# Set the Minimum required version release number.
 
-				AS_IF(
-				
-					[test -z ${temp_versionMinor}],
-					[
-						AC_MSG_ERROR([Package Maintainer has specified an invalid minimum required version minor number for Doxygen])
-					],
-					[
-						minVersionMinor=${temp_versionMinor}
-					]
-				)
+								# temp_versionRelease=$(echo ${minVersionRelease} | ${SED} -n -e 's/^@<:@.@:>@\?\(@<:@0-9@:>@\+\)$/\1/p')
 
-				# Set the Minimum required version release number.
+								temp_versionRelease=$(echo ${minVersionRelease} | ${SED} -n -f ${srcdir}/sed/get_version_component.sed)
 
-				# temp_versionRelease=$(echo ${minVersionRelease} | ${SED} -n -e 's/^@<:@.@:>@\?\(@<:@0-9@:>@\+\)$/\1/p')
+								AS_IF(
 
-				temp_versionRelease=$(echo ${minVersionRelease} | ${SED} -n -f ${srcdir}/sed/get_version_component.sed)
-
-				AS_IF(
-
-					[test -z ${temp_versionRelease}],
-					[
-						AC_MSG_ERROR([Package Maintainer has specified an invalid minimum required version release number for Doxygen])
-					],
-					[
-						minVersionRelease=${temp_versionRelease}
+									[test -z ${temp_versionRelease}],
+									[
+										error=_AX_DOXYGEN_ERROR_MIN_REQD_VER_RELEASE_INVALID
+									],
+									[
+										minVersionRelease=${temp_versionRelease}
+									]
+								)
+							]
+						)
 					]
 				)
 
@@ -848,40 +918,40 @@ AC_DEFUN(
 
 					[test -z ${temp_versionMajor}],
 					[
-						AC_MSG_ERROR([Found instance of Doxygen has reported an invalid major version number])
+						error=_AX_DOXYGEN_ERROR_FOUND_VER_MAJOR_INVALID
 					],
 					[
 						foundVersionMajor=${temp_versionMajor}
-					]
-				)
 
-				# Set the Found version minor number.
+						# Set the Found version minor number.
 
-				temp_versionMinor=$(echo ${foundVersionMinor} | ${SED} -n -e 's/^@<:@.@:>@\(@<:@0-9@:>@\+\)$/\1/p')
+						temp_versionMinor=$(echo ${foundVersionMinor} | ${SED} -n -e 's/^@<:@.@:>@\(@<:@0-9@:>@\+\)$/\1/p')
 
-				AS_IF(
+						AS_IF(
+						
+							[test -z ${temp_versionMinor}],
+							[
+								error=_AX_DOXYGEN_ERROR_FOUND_VER_MINOR_INVALID
+							],
+							[
+								foundVersionMinor=${temp_versionMinor}
 
-					[test -z ${temp_versionMinor}],
-					[
-						AC_MSG_ERROR([Found instance of Doxygen has reported an invalid minor version number])
-					],
-					[
-						foundVersionMinor=${temp_versionMinor}
-					]
-				)
+								# Set the Found version release number.
 
-				# Set the Found version release number.
+								temp_versionRelease=$(echo ${foundVersionRelease} | ${SED} -n -e 's/^@<:@.@:>@\(@<:@0-9@:>@\+\)$/\1/p')
 
-				temp_versionRelease=$(echo ${foundVersionRelease} | ${SED} -n -e 's/^@<:@.@:>@\(@<:@0-9@:>@\+\)$/\1/p')
+								AS_IF(
 
-				AS_IF(
-
-					[test -z ${temp_versionRelease}],
-					[
-						AC_MSG_ERROR([Found instance of Doxygen has reported an invalid release version number])
-					],
-					[
-						foundVersionRelease=${temp_versionRelease}
+									[test -z ${temp_versionRelease}],
+									[
+										error=_AX_DOXYGEN_ERROR_FOUND_VER_RELEASE_INVALID
+									],
+									[
+										foundVersionRelease=${temp_versionRelease}
+									]
+								)
+							]
+						)
 					]
 				)
 
